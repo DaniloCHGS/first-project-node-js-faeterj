@@ -3,24 +3,46 @@ const server = express();
 server.use(express.json());
 const users = ['Danilo', 'Pedro', 'Brendo'];
 
+function badRequest(getResp, getStatus = 400, msg){
+    return getResp.status(getStatus).json({
+        Erro: `${msg}`
+    });
+}
+
+function nameIsNotValid(req, resp, next){
+    if(!req.body.name){
+        badRequest(resp, 400, 'Nome não preenchido');
+    }
+     return next();
+}
+
+function userIsNotListed(req, resp, next){
+    const user = users[req.params.id];
+    if(!user){
+        badRequest(resp, 400, 'Usuário não listado');
+    }
+    req.user = user;
+    return next();
+}
+
 //Read - lista
-server.get('/users/:id', (req, resp)=>{
-    const {id} = req.params;
-    resp.json({msg: `Usuário: ${users[id-1]}`});
+server.get('/users/:id', userIsNotListed, (req, resp)=>{
+    resp.json({msg: `Usuário: ${req.user}`});
 });
+
 server.get('/users', (req, resp)=>{
     return resp.json(users);
 });
 
 //Create - insere
-server.post('/users', (req, resp)=>{
+server.post('/users', nameIsNotValid,(req, resp)=>{
     const {name} = req.body;
     users.push(name);
     return resp.json(users);
 });
 
 //Put - edita
-server.put('/users/:index', (req, resp)=>{
+server.put('/users/:index', nameIsNotValid, userIsNotListed, (req, resp)=>{
     const {index} = req.params;
     const {name} = req.body;
     users[index] = name;
